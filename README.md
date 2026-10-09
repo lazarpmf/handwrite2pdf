@@ -33,10 +33,18 @@ Kvalitet je dobar na urednom rukopisu i štampi. Vrlo neuredan rukopis i dalje m
 
 ## Kako da unovčiš
 
-1. Postavi `PRO_LICENSE_SEED`.
-2. `npm run gen-license`
-3. Prodaj Pro preko `NEXT_PUBLIC_PAYMENT_LINK`.
-4. Kupac unese ključ u **Postavke**.
+Buy Me a Coffee šalje webhook kad neko uplati najmanje `BMC_MIN_AMOUNT` (podrazumijevano 3 $). App napravi jedinstveni kod, važi `LICENSE_DAYS` dana (podrazumijevano 7), i pošalje ga na mejl kupca.
+
+1. Cijena kafe: 3 $.
+2. Webhook URL: `https://tvoj-domen/api/webhooks/buymeacoffee`
+3. Event: `donation.created` (i `donation.refunded` ako hoćeš da povrat novca ugasi kod).
+4. `BMC_WEBHOOK_SECRET` = signing secret.
+5. Mejl: `RESEND_API_KEY` ili SMTP, plus `MAIL_FROM`.
+6. `NEXT_PUBLIC_BMC_URL` = link ka tvom profilu.
+
+Kodovi se čuvaju u `data/licenses.json` na disku servera. App mora da radi na mašini sa stalnim diskom, istoj na kojoj prima webhook.
+
+Ručni trajni ključ i dalje postoji: `npm run gen-license`.
 
 **Free:** do 3 stranice, watermark na PDF.  
-**Pro:** neograničeno, bez watermarka.
+**Pro sedmica:** neograničeno, bez watermarka, 7 dana.

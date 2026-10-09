@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export default function PricingPage() {
-  const paymentLink = process.env.NEXT_PUBLIC_PAYMENT_LINK || "";
+  const paymentLink = process.env.NEXT_PUBLIC_BMC_URL || process.env.NEXT_PUBLIC_PAYMENT_LINK || "";
 
   return (
     <main className="pricing-page">
@@ -31,21 +31,20 @@ export default function PricingPage() {
 
         <article className="plan plan-pro">
           <h2>Pro</h2>
-          <p className="price">Tvoja cijena</p>
+          <p className="price">3 $ / 7 dana</p>
           <ul>
             <li>Neograničen broj stranica</li>
             <li>Bez watermarka</li>
-            <li>Isti lokalni model — tvoj trošak API-ja = 0</li>
-            <li>Licencni ključ koji ti generišeš</li>
+            <li>Jedinstveni kod na mejl poslije uplate</li>
+            <li>Kod sam prestane da važi poslije sedam dana</li>
           </ul>
           {paymentLink ? (
             <a className="primary-btn" href={paymentLink} target="_blank" rel="noreferrer">
-              Kupi Pro
+              Kupi sedmicu
             </a>
           ) : (
             <p className="hint">
-              Postavi <code>NEXT_PUBLIC_PAYMENT_LINK</code> (Stripe Payment Link)
-              kad budeš spreman da naplaćuješ.
+              Postavi <code>NEXT_PUBLIC_BMC_URL</code> na svoj Buy Me a Coffee profil.
             </p>
           )}
         </article>
@@ -54,19 +53,19 @@ export default function PricingPage() {
       <section className="seller-guide">
         <h2>Kako da unovčiš</h2>
         <ol>
+          <li>Na Buy Me a Coffee stavi cijenu kafe na 3 $.</li>
           <li>
-            Postavi tajni seed: <code>PRO_LICENSE_SEED=neki-dugi-secret</code>
+            Integrations → New webhook. URL:{" "}
+            <code>https://tvoj-domen/api/webhooks/buymeacoffee</code>. Event:{" "}
+            <code>donation.created</code>.
           </li>
           <li>
-            Generiši ključ:{" "}
-            <code>PRO_LICENSE_SEED=... node scripts/gen-license.mjs</code>
+            Signing secret stavi u <code>BMC_WEBHOOK_SECRET</code>. Mejl ide preko
+            Resend ili SMTP (<code>MAIL_FROM</code>).
           </li>
           <li>
-            Napravi Stripe Payment Link / PayPal i pošalji kupcu ključ nakon
-            uplate (ručno ili automatski).
-          </li>
-          <li>
-            Kupac unese ključ u <strong>Postavke → Pro licenca</strong>.
+            Kupac dobije jedinstveni kod i unese ga u{" "}
+            <strong>Postavke → Pro licenca</strong>. Kod važi 7 dana.
           </li>
         </ol>
       </section>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { validateLicense } from "@/lib/license";
+import { resolveLicense } from "@/lib/passes";
 
 export async function POST(request: Request) {
   try {
@@ -8,8 +8,8 @@ export async function POST(request: Request) {
     if (!key) {
       return NextResponse.json({ valid: false }, { status: 400 });
     }
-    const valid = await validateLicense(key);
-    return NextResponse.json({ valid });
+    const status = await resolveLicense(key);
+    return NextResponse.json(status);
   } catch {
     return NextResponse.json({ valid: false }, { status: 500 });
   }

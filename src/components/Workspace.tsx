@@ -26,12 +26,20 @@ import {
 
 type Tab = "notebook" | "latex" | "pdf";
 
+function formatUntil(iso: string): string {
+  return new Date(iso).toLocaleString("sr-Latn", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 export function Workspace() {
   const [tab, setTab] = useState<Tab>("notebook");
   const [pages, setPages] = useState<PageImage[]>([]);
   const [latex, setLatex] = useState("");
   const [licenseKey, setLicenseKey] = useState("");
   const [isPro, setIsPro] = useState(false);
+  const [proUntil, setProUntil] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -54,7 +62,10 @@ export function Workspace() {
         body: JSON.stringify({ key: license }),
       })
         .then((r) => r.json())
-        .then((d: { valid?: boolean }) => setIsPro(Boolean(d.valid)))
+        .then((d: { valid?: boolean; expiresAt?: string | null }) => {
+          setIsPro(Boolean(d.valid));
+          setProUntil(d.expiresAt ? formatUntil(d.expiresAt) : null);
+        })
         .catch(() => setIsPro(false));
     }
   }, []);
@@ -438,18 +449,31 @@ export function Workspace() {
         onClose={() => setSettingsOpen(false)}
         licenseKey={licenseKey}
         isPro={isPro}
+        proUntil={proUntil}
         onSaveLicense={async (key) => {
           const res = await fetch("/api/license/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ key }),
           });
-          const data = (await res.json()) as { valid?: boolean };
+          const data = (await res.json()) as {
+            valid?: boolean;
+            expiresAt?: string | null;
+            reason?: string;
+          };
           if (data.valid) {
             setLicenseKey(key.trim().toUpperCase());
             setStoredLicense(key);
             setIsPro(true);
-            return { ok: true, message: "Pro aktiviran. Hvala!" };
+            const until = data.expiresAt ? formatUntil(data.expiresAt) : null;
+            setProUntil(until);
+            return {
+              ok: true,
+              message: until ? `Pro aktivan do ${until}.` : "Pro aktiviran. Hvala!",
+            };
+          }
+          if (data.reason === "expired") {
+            return { ok: false, message: "Kod je istekao. Kupi novu sedmicu." };
           }
           return { ok: false, message: "Neispravan licencni ključ." };
         }}
@@ -457,6 +481,7 @@ export function Workspace() {
           clearStoredLicense();
           setLicenseKey("");
           setIsPro(false);
+          setProUntil(null);
         }}
       />
     </div>

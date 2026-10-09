@@ -7,6 +7,7 @@ type Props = {
   onClose: () => void;
   licenseKey: string;
   isPro: boolean;
+  proUntil: string | null;
   onSaveLicense: (key: string) => Promise<{ ok: boolean; message: string }>;
   onClearLicense: () => void;
 };
@@ -16,6 +17,7 @@ export function SettingsPanel({
   onClose,
   licenseKey,
   isPro,
+  proUntil,
   onSaveLicense,
   onClearLicense,
 }: Props) {
@@ -46,13 +48,14 @@ export function SettingsPanel({
         <section className="modal-section">
           <h3>Pro licenca {isPro ? "· aktivna" : ""}</h3>
           <p className="hint">
-            Pro skida limit od 3 stranice i uklanja watermark na PDF-u.
-            Konverzija i dalje radi lokalno, bez troška API-ja.
+            {isPro && proUntil
+              ? `Kod važi do ${proUntil}. Poslije toga app se vraća na 3 stranice.`
+              : "Pro skida limit od 3 stranice i uklanja watermark. Kod sa Buy Me a Coffee važi 7 dana."}
           </p>
           <input
             type="text"
             className="field"
-            placeholder="INKTEX-XXXXXXXX"
+            placeholder="INKTEX-..."
             value={draftLicense}
             onChange={(e) => setDraftLicense(e.target.value)}
             autoComplete="off"

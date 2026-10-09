@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { FREE_PAGE_LIMIT } from "@/lib/constants";
-import { validateLicense } from "@/lib/license";
+import { resolveLicense } from "@/lib/passes";
 
 type ImagePayload = {
   mimeType: string;
@@ -10,7 +10,7 @@ type ImagePayload = {
 export async function POST(request: Request) {
   try {
     const licenseHeader = request.headers.get("x-inktex-license")?.trim() || "";
-    const isPro = licenseHeader ? await validateLicense(licenseHeader) : false;
+    const isPro = licenseHeader ? (await resolveLicense(licenseHeader)).valid : false;
 
     const body = (await request.json()) as {
       images?: ImagePayload[];
