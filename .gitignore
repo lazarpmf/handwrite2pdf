@@ -37,6 +37,11 @@ yarn-error.log*
 # issued license codes
 /data/*.json
 
+# latex build junk
+*.aux
+*.log
+lessons/*-preview.png
+
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
