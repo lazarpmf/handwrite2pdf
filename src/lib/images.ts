@@ -26,7 +26,7 @@ function readAsDataURL(file: File): Promise<string> {
   });
 }
 
-/** Downscale large photos so Gemini requests stay small/fast. */
+/** Downscale large photos so local OCR stays fast. */
 export async function compressImageFile(
   file: File,
   maxSide = 1600,

@@ -5,8 +5,6 @@ import { useState } from "react";
 type Props = {
   open: boolean;
   onClose: () => void;
-  apiKey: string;
-  onSaveApiKey: (key: string) => void;
   licenseKey: string;
   isPro: boolean;
   onSaveLicense: (key: string) => Promise<{ ok: boolean; message: string }>;
@@ -16,14 +14,11 @@ type Props = {
 export function SettingsPanel({
   open,
   onClose,
-  apiKey,
-  onSaveApiKey,
   licenseKey,
   isPro,
   onSaveLicense,
   onClearLicense,
 }: Props) {
-  const [draftKey, setDraftKey] = useState(apiKey);
   const [draftLicense, setDraftLicense] = useState(licenseKey);
   const [licenseMsg, setLicenseMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -41,44 +36,18 @@ export function SettingsPanel({
         </div>
 
         <section className="modal-section">
-          <h3>Gemini API ključ (besplatno)</h3>
+          <h3>Prepoznavanje</h3>
           <p className="hint">
-            Ključ ostaje u tvom browseru. App ga šalje samo Google Gemini API-ju
-            radi konverzije.{" "}
-            <a
-              href="https://aistudio.google.com/apikey"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Uzmi besplatni ključ
-            </a>
+            Rukopis ide kroz lokalni Pix2Text (besplatna Python biblioteka).
+            Nema API ključa i slike ne idu na Gemini.
           </p>
-          <input
-            type="password"
-            className="field"
-            placeholder="AIza..."
-            value={draftKey}
-            onChange={(e) => setDraftKey(e.target.value)}
-            autoComplete="off"
-          />
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={() => {
-              onSaveApiKey(draftKey);
-              setLicenseMsg("API ključ sačuvan.");
-            }}
-          >
-            Sačuvaj API ključ
-          </button>
         </section>
 
         <section className="modal-section">
           <h3>Pro licenca {isPro ? "· aktivna" : ""}</h3>
           <p className="hint">
-            Pro skida limit od 3 stranice, uklanja watermark na PDF-u i
-            otključava neograničene konverzije. I dalje koristiš svoj Gemini
-            ključ — tebi hostovanje ostaje besplatno.
+            Pro skida limit od 3 stranice i uklanja watermark na PDF-u.
+            Konverzija i dalje radi lokalno, bez troška API-ja.
           </p>
           <input
             type="text"

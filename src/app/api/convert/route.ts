@@ -7,41 +7,13 @@ type ImagePayload = {
   data: string;
 };
 
-const SYSTEM_PROMPT = `You are an expert at reading handwritten STEM notes (mathematics, physics, CS theory) and converting them into clean, compilable LaTeX.
-
-Rules:
-- Output ONLY a complete LaTeX document. No markdown fences, no commentary.
-- Start with \\documentclass{article}, include amsmath, amssymb, amsthm, geometry.
-- Define theorem environments when useful (definition, theorem, lemma, proof, example).
-- Preserve structure: titles, definitions, proofs, equations, lists.
-- Use \\[ \\] or equation environments for displayed math; $ $ for inline.
-- If multiple page images are provided, merge them into ONE coherent document in reading order.
-- Fix obvious spelling only when unambiguous; keep mathematical meaning faithful to the handwriting.
-- If something is illegible, insert \\textbf{[?}...{]} with your best guess and a short note.
-- Language of the notes: keep the same language as the handwriting (often Serbian/Bosnian/Croatian or English).`;
-
 export async function POST(request: Request) {
   try {
-    const apiKey =
-      request.headers.get("x-gemini-api-key")?.trim() ||
-      process.env.GEMINI_API_KEY?.trim();
-
-    if (!apiKey) {
-      return NextResponse.json(
-        {
-          error:
-            "Nedostaje Gemini API ključ. Unesi svoj besplatni ključ u Postavkama.",
-        },
-        { status: 401 },
-      );
-    }
-
     const licenseHeader = request.headers.get("x-inktex-license")?.trim() || "";
     const isPro = licenseHeader ? await validateLicense(licenseHeader) : false;
 
     const body = (await request.json()) as {
       images?: ImagePayload[];
-      extraInstructions?: string;
     };
 
     const images = body.images || [];
@@ -69,7 +41,6 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      // rough size guard (~12MB base64)
       if (img.data.length > 16_000_000) {
         return NextResponse.json(
           { error: "Slika je prevelika. Kompresuj ili snimi ponovo." },
@@ -78,79 +49,51 @@ export async function POST(request: Request) {
       }
     }
 
-    const parts: Array<Record<string, unknown>> = [
-      {
-        text:
-          SYSTEM_PROMPT +
-          (body.extraInstructions
-            ? `\n\nAdditional user instructions:\n${body.extraInstructions}`
-            : ""),
-      },
-    ];
-
-    images.forEach((img, index) => {
-      parts.push({
-        text: `Page ${index + 1} of ${images.length}:`,
+    const ocrUrl = process.env.OCR_SERVICE_URL || "http://127.0.0.1:8765";
+    let ocrRes: Response;
+    try {
+      ocrRes = await fetch(`${ocrUrl}/convert`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          images: images.map((img) => ({
+            mimeType: img.mimeType,
+            data: img.data.replace(/^data:[^;]+;base64,/, ""),
+          })),
+        }),
       });
-      parts.push({
-        inline_data: {
-          mime_type: img.mimeType,
-          data: img.data.replace(/^data:[^;]+;base64,/, ""),
+    } catch {
+      return NextResponse.json(
+        {
+          error:
+            "OCR servis nije pokrenut. U drugom terminalu: npm run ocr",
         },
-      });
-    });
-
-    const model =
-      process.env.GEMINI_MODEL?.trim() || "gemini-2.0-flash";
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-
-    const geminiRes = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 8192,
-        },
-      }),
-    });
-
-    const geminiJson = (await geminiRes.json()) as {
-      error?: { message?: string };
-      candidates?: Array<{
-        content?: { parts?: Array<{ text?: string }> };
-      }>;
-    };
-
-    if (!geminiRes.ok) {
-      const msg =
-        geminiJson.error?.message ||
-        "Gemini API greška. Provjeri API ključ i kvotu.";
-      return NextResponse.json({ error: msg }, { status: 502 });
+        { status: 503 },
+      );
     }
 
-    let latex =
-      geminiJson.candidates?.[0]?.content?.parts
-        ?.map((p) => p.text || "")
-        .join("\n")
-        .trim() || "";
+    const payload = (await ocrRes.json()) as {
+      latex?: string;
+      detail?: string;
+      error?: string;
+    };
 
-    if (!latex) {
+    if (!ocrRes.ok) {
       return NextResponse.json(
-        { error: "Model nije vratio LaTeX. Pokušaj s jasnijom fotografijom." },
+        { error: payload.detail || payload.error || "Pix2Text greška." },
         { status: 502 },
       );
     }
 
-    // Strip accidental markdown fences
-    latex = latex
-      .replace(/^```(?:latex|tex)?\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim();
+    const latex = payload.latex?.trim() || "";
+    if (!latex) {
+      return NextResponse.json(
+        { error: "Pix2Text nije vratio tekst. Pokušaj jasniju fotografiju." },
+        { status: 502 },
+      );
+    }
 
-    return NextResponse.json({ latex, isPro });
+    return NextResponse.json({ latex, isPro, engine: "pix2text" });
   } catch (err) {
     console.error("convert error", err);
     return NextResponse.json(

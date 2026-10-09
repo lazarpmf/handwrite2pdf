@@ -9,9 +9,8 @@ export default function PricingPage() {
         <p className="brand">InkTeX</p>
         <h1>Besplatno za tebe. Pro za kupce.</h1>
         <p className="lede">
-          Ti koristiš svoj Gemini ključ — API te ništa ne košta izvan Google
-          free tier-a. Drugima prodaješ Pro licencu (više stranica, bez
-          watermarka).
+          Prepoznavanje radi lokalno preko Pix2Text-a — nema API računa.
+          Drugima prodaješ Pro licencu (više stranica, bez watermarka).
         </p>
         <Link className="primary-btn" href="/">
           Nazad u app
@@ -23,7 +22,7 @@ export default function PricingPage() {
           <h2>Free</h2>
           <p className="price">0 €</p>
           <ul>
-            <li>Vlastiti Gemini API ključ (BYOK)</li>
+            <li>Lokalni Pix2Text, bez API ključa</li>
             <li>Do 3 stranice po konverziji</li>
             <li>LaTeX + PDF + Overleaf eksport</li>
             <li>Mali watermark na PDF-u</li>
@@ -36,7 +35,7 @@ export default function PricingPage() {
           <ul>
             <li>Neograničen broj stranica</li>
             <li>Bez watermarka</li>
-            <li>I dalje BYOK — tvoj trošak API-ja = 0</li>
+            <li>Isti lokalni model — tvoj trošak API-ja = 0</li>
             <li>Licencni ključ koji ti generišeš</li>
           </ul>
           {paymentLink ? (

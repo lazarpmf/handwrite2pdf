@@ -1,15 +1,5 @@
-const API_KEY = "inktex.geminiApiKey";
 const LICENSE_KEY = "inktex.licenseKey";
 const LATEX_DRAFT = "inktex.latexDraft";
-
-export function getStoredApiKey(): string {
-  if (typeof window === "undefined") return "";
-  return localStorage.getItem(API_KEY) || "";
-}
-
-export function setStoredApiKey(key: string): void {
-  localStorage.setItem(API_KEY, key.trim());
-}
 
 export function getStoredLicense(): string {
   if (typeof window === "undefined") return "";

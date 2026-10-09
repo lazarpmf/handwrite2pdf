@@ -18,10 +18,8 @@ import { latexToPreviewHtml } from "@/lib/latex-preview";
 import { FREE_PAGE_LIMIT } from "@/lib/constants";
 import {
   clearStoredLicense,
-  getStoredApiKey,
   getStoredLatex,
   getStoredLicense,
-  setStoredApiKey,
   setStoredLatex,
   setStoredLicense,
 } from "@/lib/storage";
@@ -32,7 +30,6 @@ export function Workspace() {
   const [tab, setTab] = useState<Tab>("notebook");
   const [pages, setPages] = useState<PageImage[]>([]);
   const [latex, setLatex] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [licenseKey, setLicenseKey] = useState("");
   const [isPro, setIsPro] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -45,10 +42,8 @@ export function Workspace() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const key = getStoredApiKey();
     const license = getStoredLicense();
     const draft = getStoredLatex();
-    setApiKey(key);
     setLicenseKey(license);
     if (draft) setLatex(draft);
     setHydrated(true);
@@ -110,11 +105,6 @@ export function Workspace() {
   async function convert() {
     setError("");
     setStatus("");
-    if (!apiKey) {
-      setSettingsOpen(true);
-      setError("Prvo unesi Gemini API ključ u Postavkama (besplatno).");
-      return;
-    }
     if (!pages.length) {
       setError("Dodaj barem jednu fotografiju iz sveske.");
       return;
@@ -127,7 +117,9 @@ export function Workspace() {
     }
 
     setBusy(true);
-    setStatus("Čitam rukopis i generišem LaTeX…");
+    setStatus(
+      "Pix2Text čita stranice lokalno… Prvi put skida modele i može potrajati.",
+    );
     try {
       const images = await Promise.all(
         pages.map((p) => fileToBase64Payload(p.file)),
@@ -136,7 +128,6 @@ export function Workspace() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-gemini-api-key": apiKey,
           ...(licenseKey ? { "x-inktex-license": licenseKey } : {}),
         },
         body: JSON.stringify({ images }),
@@ -213,8 +204,8 @@ export function Workspace() {
           <div className="panel-intro">
             <h1>Fotografiraj stranice</h1>
             <p>
-              Jedna ili više stranica iz sveske. Redoslijed = redoslijed u
-              dokumentu.
+              Jedna ili više stranica iz sveske. Pix2Text radi lokalno, bez
+              API ključa. Redoslijed = redoslijed u dokumentu.
               {!isPro && ` Free limit: ${FREE_PAGE_LIMIT} stranice.`}
             </p>
           </div>
@@ -445,11 +436,6 @@ export function Workspace() {
       <SettingsPanel
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        apiKey={apiKey}
-        onSaveApiKey={(key) => {
-          setApiKey(key.trim());
-          setStoredApiKey(key);
-        }}
         licenseKey={licenseKey}
         isPro={isPro}
         onSaveLicense={async (key) => {

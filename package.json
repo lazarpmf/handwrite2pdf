@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "gen-license": "node scripts/gen-license.mjs"
+    "gen-license": "node scripts/gen-license.mjs",
+    "ocr": ".venv/bin/python ocr/server.py"
   },
   "dependencies": {
     "html2canvas": "^1.4.1",
