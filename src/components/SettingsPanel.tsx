@@ -50,7 +50,9 @@ export function SettingsPanel({
           <p className="hint">
             {isPro && proUntil
               ? `Kod važi do ${proUntil}. Poslije toga app se vraća na 3 stranice.`
-              : "Pro skida limit od 3 stranice i uklanja watermark. Kod sa Buy Me a Coffee važi 7 dana."}
+              : isPro
+                ? "Poklon kod je aktivan i nema rok."
+                : "Sedmica je 3 $, mjesec 8 $. Poklon kod koji dobiješ od mene nema rok."}
           </p>
           <input
             type="text"

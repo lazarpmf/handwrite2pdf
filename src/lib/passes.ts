@@ -10,8 +10,9 @@ export type Pass = {
   amount: number;
   currency: string;
   createdAt: string;
-  expiresAt: string;
+  expiresAt: string | null;
   revoked: boolean;
+  kind: "paid" | "gift";
 };
 
 type Db = { passes: Pass[] };
@@ -46,14 +47,44 @@ async function writeDb(db: Db): Promise<void> {
   await rename(tmp, dbPath);
 }
 
+function positiveNumber(raw: string | undefined, fallback: number): number {
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
 export function licenseDays(): number {
-  const days = Number(process.env.LICENSE_DAYS || 7);
-  return Number.isFinite(days) && days > 0 ? days : 7;
+  return positiveNumber(process.env.LICENSE_DAYS, 7);
+}
+
+export function monthDays(): number {
+  return positiveNumber(process.env.LICENSE_MONTH_DAYS, 30);
 }
 
 export function minPaymentAmount(): number {
-  const amount = Number(process.env.BMC_MIN_AMOUNT || 3);
-  return Number.isFinite(amount) && amount > 0 ? amount : 3;
+  return positiveNumber(process.env.BMC_MIN_AMOUNT, 3);
+}
+
+export function monthPaymentAmount(): number {
+  return positiveNumber(process.env.BMC_MONTH_AMOUNT, 8);
+}
+
+const MONTH_EVENTS = new Set([
+  "membership.started",
+  "membership.updated",
+  "recurring_donation.started",
+  "recurring_donation.updated",
+]);
+
+const RENEW_EVENTS = new Set(["membership.updated", "recurring_donation.updated"]);
+
+export function accessForPayment(type: string, amount: number): { days: number; renew: boolean } | null {
+  if (MONTH_EVENTS.has(type)) {
+    return { days: monthDays(), renew: RENEW_EVENTS.has(type) };
+  }
+  if (type !== "donation.created" && type !== "extra_purchase.created") return null;
+  if (amount >= monthPaymentAmount()) return { days: monthDays(), renew: false };
+  if (amount >= minPaymentAmount()) return { days: licenseDays(), renew: false };
+  return null;
 }
 
 function newCode(): string {
@@ -65,14 +96,25 @@ export async function issuePass(input: {
   paymentId: string;
   amount: number;
   currency: string;
+  days: number;
+  renew?: boolean;
 }): Promise<Pass> {
   return withLock(async () => {
     const db = await readDb();
     const existing = db.passes.find((pass) => pass.paymentId === input.paymentId);
-    if (existing) return existing;
+    if (existing) {
+      if (input.renew) {
+        const current = existing.expiresAt ? Date.parse(existing.expiresAt) : Date.now();
+        const base = Math.max(Date.now(), current);
+        existing.expiresAt = new Date(base + input.days * 24 * 60 * 60 * 1000).toISOString();
+        existing.revoked = false;
+        existing.amount = input.amount;
+        await writeDb(db);
+      }
+      return existing;
+    }
 
     const createdAt = new Date();
-    const expiresAt = new Date(createdAt.getTime() + licenseDays() * 24 * 60 * 60 * 1000);
     const pass: Pass = {
       code: newCode(),
       email: input.email,
@@ -80,13 +122,25 @@ export async function issuePass(input: {
       amount: input.amount,
       currency: input.currency || "USD",
       createdAt: createdAt.toISOString(),
-      expiresAt: expiresAt.toISOString(),
+      expiresAt: new Date(createdAt.getTime() + input.days * 24 * 60 * 60 * 1000).toISOString(),
       revoked: false,
+      kind: "paid",
     };
     db.passes.push(pass);
     await writeDb(db);
     return pass;
   });
+}
+
+export function normalizeGiftCode(code: string): string {
+  return code.trim().toUpperCase().replace(/\s+/g, "-");
+}
+
+function envGiftCodes(): string[] {
+  return (process.env.GIFT_CODES || "")
+    .split(",")
+    .map((code) => normalizeGiftCode(code))
+    .filter(Boolean);
 }
 
 export async function revokePass(paymentId: string): Promise<boolean> {
@@ -102,7 +156,7 @@ export async function revokePass(paymentId: string): Promise<boolean> {
 
 export type LicenseStatus = {
   valid: boolean;
-  kind: "lifetime" | "pass" | "none";
+  kind: "lifetime" | "pass" | "gift" | "none";
   expiresAt: string | null;
   reason?: "expired" | "revoked" | "unknown";
 };
@@ -112,8 +166,8 @@ export async function resolveLicense(key: string): Promise<LicenseStatus> {
   if (await validateLicense(normalized)) {
     return { valid: true, kind: "lifetime", expiresAt: null };
   }
-  if (!/^INKTEX-[0-9A-F]{16}$/.test(normalized)) {
-    return { valid: false, kind: "none", expiresAt: null, reason: "unknown" };
+  if (envGiftCodes().includes(normalized)) {
+    return { valid: true, kind: "gift", expiresAt: null };
   }
 
   const db = await readDb();
@@ -122,7 +176,10 @@ export async function resolveLicense(key: string): Promise<LicenseStatus> {
     return { valid: false, kind: "none", expiresAt: null, reason: "unknown" };
   }
   if (pass.revoked) {
-    return { valid: false, kind: "pass", expiresAt: pass.expiresAt, reason: "revoked" };
+    return { valid: false, kind: pass.kind === "gift" ? "gift" : "pass", expiresAt: pass.expiresAt, reason: "revoked" };
+  }
+  if (pass.kind === "gift" || !pass.expiresAt) {
+    return { valid: true, kind: "gift", expiresAt: null };
   }
   if (Date.parse(pass.expiresAt) <= Date.now()) {
     return { valid: false, kind: "pass", expiresAt: pass.expiresAt, reason: "expired" };

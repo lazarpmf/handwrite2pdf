@@ -30,13 +30,13 @@ export default function PricingPage() {
         </article>
 
         <article className="plan plan-pro">
-          <h2>Pro</h2>
-          <p className="price">3 $ / 7 dana</p>
+          <h2>Sedmica</h2>
+          <p className="price">3 $</p>
           <ul>
             <li>Neograničen broj stranica</li>
             <li>Bez watermarka</li>
-            <li>Jedinstveni kod na mejl poslije uplate</li>
-            <li>Kod sam prestane da važi poslije sedam dana</li>
+            <li>Kod stiže na mejl</li>
+            <li>Važi 7 dana</li>
           </ul>
           {paymentLink ? (
             <a className="primary-btn" href={paymentLink} target="_blank" rel="noreferrer">
@@ -48,24 +48,38 @@ export default function PricingPage() {
             </p>
           )}
         </article>
+
+        <article className="plan plan-pro">
+          <h2>Mjesec</h2>
+          <p className="price">8 $</p>
+          <ul>
+            <li>Isto kao sedmica</li>
+            <li>Važi 30 dana</li>
+            <li>Membership se produžava kad se naplati</li>
+            <li>Jedan kod, novi rok</li>
+          </ul>
+          {paymentLink ? (
+            <a className="secondary-btn" href={paymentLink} target="_blank" rel="noreferrer">
+              Kupi mjesec
+            </a>
+          ) : null}
+        </article>
       </section>
 
       <section className="seller-guide">
         <h2>Kako da unovčiš</h2>
         <ol>
-          <li>Na Buy Me a Coffee stavi cijenu kafe na 3 $.</li>
+          <li>Sedmica: extra ili kafa od 3 $. Mjesec: extra od 8 $, ili membership.</li>
           <li>
-            Integrations → New webhook. URL:{" "}
-            <code>https://tvoj-domen/api/webhooks/buymeacoffee</code>. Event:{" "}
-            <code>donation.created</code>.
+            Webhook: <code>https://tvoj-domen/api/webhooks/buymeacoffee</code>. Eventi:{" "}
+            <code>donation.created</code>, <code>extra_purchase.created</code>,{" "}
+            <code>membership.started</code>.
           </li>
           <li>
-            Signing secret stavi u <code>BMC_WEBHOOK_SECRET</code>. Mejl ide preko
-            Resend ili SMTP (<code>MAIL_FROM</code>).
+            Signing secret u <code>BMC_WEBHOOK_SECRET</code>. Mejl preko Resend ili SMTP.
           </li>
           <li>
-            Kupac dobije jedinstveni kod i unese ga u{" "}
-            <strong>Postavke → Pro licenca</strong>. Kod važi 7 dana.
+            Poklon kod koji sam izmisliš: <code>npm run gift -- DRAGANA-TAJNA</code>. Nema roka.
           </li>
         </ol>
       </section>

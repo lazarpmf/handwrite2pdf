@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "gen-license": "node scripts/gen-license.mjs",
+    "gift": "node scripts/gift-code.mjs",
     "ocr": ".venv/bin/python ocr/server.py"
   },
   "dependencies": {

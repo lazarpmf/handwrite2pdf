@@ -3,21 +3,24 @@ import nodemailer from "nodemailer";
 export async function sendPassEmail(input: {
   to: string;
   code: string;
-  expiresAt: string;
+  expiresAt: string | null;
+  days: number;
 }): Promise<boolean> {
   const from = process.env.MAIL_FROM || process.env.SMTP_USER || "";
-  const expires = new Date(input.expiresAt).toLocaleString("sr-Latn", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
+  const expires = input.expiresAt
+    ? new Date(input.expiresAt).toLocaleString("sr-Latn", {
+        dateStyle: "long",
+        timeStyle: "short",
+      })
+    : "";
   const text = [
     "Hvala na kafi.",
     "",
     `Tvoj InkTeX Pro kod: ${input.code}`,
-    `Važi do: ${expires}`,
+    expires ? `Važi ${input.days} dana, do: ${expires}` : "Važi bez roka.",
     "",
     "U aplikaciji otvori Postavke i nalijepi kod.",
-    "Za tih 7 dana možeš neograničeno stranica, bez watermarka.",
+    "Dok kod važi možeš neograničeno stranica, bez watermarka.",
   ].join("\n");
 
   if (process.env.RESEND_API_KEY && from) {

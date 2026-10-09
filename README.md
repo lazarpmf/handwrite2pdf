@@ -33,7 +33,11 @@ Kvalitet je dobar na urednom rukopisu i štampi. Vrlo neuredan rukopis i dalje m
 
 ## Kako da unovčiš
 
-Buy Me a Coffee šalje webhook kad neko uplati najmanje `BMC_MIN_AMOUNT` (podrazumijevano 3 $). App napravi jedinstveni kod, važi `LICENSE_DAYS` dana (podrazumijevano 7), i pošalje ga na mejl kupca.
+Buy Me a Coffee šalje webhook kad neko plati.
+
+- Od `BMC_MIN_AMOUNT` (3 $) do ispod mjesečne cijene: kod važi `LICENSE_DAYS` (7) dana.
+- Od `BMC_MONTH_AMOUNT` (8 $), ili membership: kod važi `LICENSE_MONTH_DAYS` (30) dana. Obnova membershipa produžava isti kod.
+- Poklon, bez naplate i bez roka: `npm run gift -- DRAGANA-TAJNA`
 
 1. Cijena kafe: 3 $.
 2. Webhook URL: `https://tvoj-domen/api/webhooks/buymeacoffee`
@@ -47,4 +51,6 @@ Kodovi se čuvaju u `data/licenses.json` na disku servera. App mora da radi na m
 Ručni trajni ključ i dalje postoji: `npm run gen-license`.
 
 **Free:** do 3 stranice, watermark na PDF.  
-**Pro sedmica:** neograničeno, bez watermarka, 7 dana.
+**Sedmica:** neograničeno, bez watermarka, 7 dana.  
+**Mjesec:** neograničeno, bez watermarka, 30 dana.  
+**Poklon kod:** neograničeno, bez roka.

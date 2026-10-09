@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { parseBmcEvent } from "@/lib/bmc";
 import { sendPassEmail } from "@/lib/mail";
-import { issuePass, minPaymentAmount, revokePass, verifyBmcSignature } from "@/lib/passes";
+import { accessForPayment, issuePass, revokePass, verifyBmcSignature } from "@/lib/passes";
 
 export async function POST(request: Request) {
   const secret = process.env.BMC_WEBHOOK_SECRET || "";
@@ -21,24 +21,24 @@ export async function POST(request: Request) {
 
   const event = parseBmcEvent(payload);
 
-  if (event.type === "donation.refunded") {
+  if (event.type === "donation.refunded" || event.type === "extra_purchase.refunded") {
     const revoked = event.paymentId ? await revokePass(event.paymentId) : false;
     return NextResponse.json({ ok: true, revoked });
   }
 
-  if (event.type !== "donation.created") {
-    return NextResponse.json({ ok: true, ignored: event.type });
+  const access = accessForPayment(event.type, event.amount);
+  if (!access) {
+    return NextResponse.json({
+      ok: true,
+      ignored: event.type,
+      skipped: event.type === "donation.created" || event.type === "extra_purchase.created"
+        ? "iznos je ispod cijene Pro sedmice"
+        : undefined,
+    });
   }
 
   if (!event.paymentId) {
     return NextResponse.json({ ok: true, skipped: "nema id uplate" });
-  }
-
-  if (event.amount < minPaymentAmount()) {
-    return NextResponse.json({
-      ok: true,
-      skipped: "iznos je ispod cijene Pro sedmice",
-    });
   }
 
   if (!event.email) {
@@ -50,6 +50,8 @@ export async function POST(request: Request) {
     paymentId: event.paymentId,
     amount: event.amount,
     currency: event.currency,
+    days: access.days,
+    renew: access.renew,
   });
 
   try {
@@ -57,6 +59,7 @@ export async function POST(request: Request) {
       to: pass.email,
       code: pass.code,
       expiresAt: pass.expiresAt,
+      days: access.days,
     });
     return NextResponse.json({
       ok: true,
