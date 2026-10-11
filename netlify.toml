@@ -3,7 +3,3 @@
 
 [build.environment]
   NODE_VERSION = "22"
-
-# Čitanje fotografije traje duže od podrazumijevanih 10 s kad plan to dozvoljava.
-[functions]
-  timeout = 26
