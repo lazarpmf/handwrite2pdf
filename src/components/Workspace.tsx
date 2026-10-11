@@ -213,7 +213,7 @@ export function Workspace() {
       {tab === "notebook" && (
         <section className="panel">
           <div className="panel-intro">
-            <h1>Fotografisi</h1>
+            <h1>Fotografisi stranicu sveske</h1>
             <p>
               Jedna ili više stranica iz sveske. Redoslijed na listi je
               redoslijed u dokumentu.
@@ -227,7 +227,7 @@ export function Workspace() {
               className="primary-btn"
               onClick={() => cameraRef.current?.click()}
             >
-              Fotografisi
+              Fotografisi stranicu sveske
             </button>
             <button
               type="button"

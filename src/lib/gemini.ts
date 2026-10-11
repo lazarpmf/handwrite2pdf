@@ -13,19 +13,34 @@ export class ConvertFailure extends Error {
   }
 }
 
-const INSTRUCTION = `You convert photos of handwritten or printed notebook pages into one LaTeX document.
+const INSTRUCTION = `You convert photos of handwritten or printed notebook pages into one LaTeX document. Redraw every figure as SVG.
 
 Output rules:
 - Reply with LaTeX source only. No markdown fences and no commentary.
 - One complete document: \\documentclass{article}, \\usepackage{amsmath,amssymb}, then \\begin{document} ... \\end{document}.
-- Keep the language written on the page. Do not translate.
-- A title on the page is \\section*{Title}. Separate paragraphs with a blank line.
-- Emphasis is only \\textbf{} or \\emph{}. Mathematics is $...$ or an equation or align environment.
-- Lists are itemize or enumerate.
-- Put \\newpage between photographed pages.
-- Do not emit HTML tags, \\begin{center}, \\huge, \\setcounter, \\vspace, \\hspace, \\noindent, or TikZ.
-- A figure becomes one sentence: Figura: short description.
-- Do not invent sentences that are not on the page. An unreadable word becomes [?].`;
+- Keep the language written on the page. Do not translate. Do not invent sentences. An unreadable word becomes [?].
+- The page title and each theorem or named block are \\section*{Title}.
+- Bullet lists are itemize. Numbered lists are enumerate.
+- A two-column proof is a table with a header row, one fact per row:
+\\begin{tabular}{l|l}
+statements & reasons \\\\
+1) $\\square EFGH$ & 1) given \\\\
+\\end{tabular}
+Every symbol in a cell is inside $...$.
+- A stack of formulas is align*, one formula per line:
+\\begin{align*}
+(a+b)^2 &= a^2 + 2ab + b^2 \\\\
+(a-b)^2 &= a^2 - 2ab + b^2 \\\\
+\\end{align*}
+Never leave &= or \\\\\\\\ outside align*.
+- Every hand-drawn figure is redrawn, not described. Put this immediately after the text it belongs to:
+\\begin{inkfig}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180">...</svg>
+\\end{inkfig}
+SVG rules: white background, black stroke, stroke-width 2, vertex letters and angle numbers as <text>, only line, polygon, polyline, rect, circle, text. No images, scripts, or style blocks. Match the shape, labels, and angle numbers on the page.
+- Do not write "Figura:" instead of the drawing.
+- \\\\newpage between photographed pages.
+- No HTML except the SVG inside inkfig. No center, huge, setcounter, or TikZ.`;
 
 export async function pagesToLatex(images: PageImage[]): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();

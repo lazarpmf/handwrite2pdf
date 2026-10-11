@@ -19,6 +19,7 @@ function renderMath(tex: string, displayMode: boolean): string {
       throwOnError: false,
       strict: "ignore",
       trust: false,
+      output: "html",
     });
   } catch {
     return `<code>${escapeHtml(cleaned)}</code>`;
@@ -111,44 +112,62 @@ function replaceCommand(
   return out;
 }
 
+function findEnvBegin(
+  src: string,
+  name: string,
+  from: number,
+): { index: number; length: number; starred: boolean } | null {
+  const needle = `\\begin{${name}`;
+  let i = from;
+  while (i < src.length) {
+    const at = src.indexOf(needle, i);
+    if (at < 0) return null;
+    let j = at + needle.length;
+    const starred = src[j] === "*";
+    if (starred) j += 1;
+    if (src[j] === "}") return { index: at, length: j + 1 - at, starred };
+    i = at + needle.length;
+  }
+  return null;
+}
+
 function replaceEnvironment(
   src: string,
   name: string,
   render: (inner: string) => string,
 ): string {
-  const begin = `\\begin{${name}}`;
-  const end = `\\end{${name}}`;
   let out = "";
   let i = 0;
   while (i < src.length) {
-    const at = src.indexOf(begin, i);
-    if (at < 0) {
+    const begin = findEnvBegin(src, name, i);
+    if (!begin) {
       out += src.slice(i);
       break;
     }
-    out += src.slice(i, at);
+    const endToken = `\\end{${name}${begin.starred ? "*" : ""}}`;
+    out += src.slice(i, begin.index);
     let depth = 1;
-    let j = at + begin.length;
+    let j = begin.index + begin.length;
     let closeAt = -1;
     while (j < src.length && depth > 0) {
-      const nextBegin = src.indexOf(begin, j);
-      const nextEnd = src.indexOf(end, j);
+      const nextBegin = findEnvBegin(src, name, j);
+      const nextEnd = src.indexOf(endToken, j);
       if (nextEnd < 0) break;
-      if (nextBegin >= 0 && nextBegin < nextEnd) {
+      if (nextBegin && nextBegin.index < nextEnd) {
         depth += 1;
-        j = nextBegin + begin.length;
+        j = nextBegin.index + nextBegin.length;
       } else {
         depth -= 1;
-        j = nextEnd + end.length;
         if (depth === 0) closeAt = nextEnd;
+        j = nextEnd + endToken.length;
       }
     }
     if (closeAt < 0) {
-      out += src.slice(at);
+      out += src.slice(begin.index);
       break;
     }
-    out += render(src.slice(at + begin.length, closeAt));
-    i = closeAt + end.length;
+    out += render(src.slice(begin.index + begin.length, closeAt));
+    i = closeAt + endToken.length;
   }
   return out;
 }
@@ -209,16 +228,156 @@ function unwrapSizeGroups(src: string): string {
   return out;
 }
 
-function extractDisplayEnvs(src: string): string {
-  return src.replace(
-    /\\begin\{(equation|align|gather|multline|eqnarray)\*?\}([\s\S]*?)\\end\{\1\*?\}/g,
-    (_, _name: string, tex: string) => `\n\n$$${tex}$$\n\n`,
-  );
+function sanitizeSvg(src: string): string | null {
+  const match = src.match(/<svg[\s\S]*?<\/svg>/i);
+  if (!match) return null;
+  let svg = match[0];
+  svg = svg.replace(/<script[\s\S]*?<\/script>/gi, "");
+  svg = svg.replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, "");
+  svg = svg.replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, "");
+  svg = svg.replace(/\s(?:href|xlink:href)\s*=\s*("[^"]*"|'[^']*')/gi, "");
+  svg = svg.replace(/javascript:/gi, "");
+  if (!/^<svg[\s>]/i.test(svg.trim())) return null;
+  return `<div class="note-figure">${svg}</div>`;
+}
+
+function extractFigures(src: string): string {
+  let text = replaceEnvironment(src, "inkfig", (inner) => {
+    const svg = sanitizeSvg(inner);
+    return svg ? `\n\n${block(svg)}\n\n` : "\n\n";
+  });
+  text = text.replace(/<svg[\s\S]*?<\/svg>/gi, (svg) => {
+    const clean = sanitizeSvg(svg);
+    return clean ? `\n\n${block(clean)}\n\n` : "";
+  });
+  return text;
+}
+
+function promoteFormulaBlocks(src: string): string {
+  const lines = src.split("\n");
+  const out: string[] = [];
+  let group: string[] = [];
+  let depth = 0;
+  const flush = () => {
+    const body = group.join("\n").trim();
+    if (body) out.push(`\\begin{align*}\n${body}\n\\end{align*}`);
+    group = [];
+  };
+  for (const line of lines) {
+    const begins = line.match(/\\begin\{/g)?.length ?? 0;
+    const ends = line.match(/\\end\{/g)?.length ?? 0;
+    const trimmed = line.trim();
+    const formula =
+      depth === 0 &&
+      Boolean(trimmed) &&
+      !trimmed.startsWith("\\") &&
+      trimmed.includes("&=");
+    if (formula) group.push(line);
+    else {
+      flush();
+      out.push(line);
+    }
+    depth = Math.max(0, depth + begins - ends);
+  }
+  flush();
+  return out.join("\n");
+}
+
+function renderDisplay(inner: string): string {
+  const body = inner.trim();
+  if (!body) return "";
+  const tex = /\\begin\{/.test(body) ? body : `\\begin{aligned}${body}\\end{aligned}`;
+  return `\n\n${block(renderMath(tex, true))}\n\n`;
+}
+
+function splitLatexRows(src: string): string[] {
+  const rows: string[] = [];
+  let current = "";
+  let depth = 0;
+  for (let i = 0; i < src.length; i += 1) {
+    if (src[i] === "\\" && src[i + 1] === "\\" && depth === 0) {
+      rows.push(current);
+      current = "";
+      i += 1;
+      continue;
+    }
+    if (src[i] === "\\" && i + 1 < src.length) {
+      current += src[i] + src[i + 1];
+      i += 1;
+      continue;
+    }
+    if (src[i] === "{") depth += 1;
+    else if (src[i] === "}") depth -= 1;
+    current += src[i];
+  }
+  if (current.trim()) rows.push(current);
+  return rows;
+}
+
+function splitCells(src: string): string[] {
+  const cells: string[] = [];
+  let current = "";
+  let depth = 0;
+  for (let i = 0; i < src.length; i += 1) {
+    if (src[i] === "\\" && i + 1 < src.length) {
+      current += src[i] + src[i + 1];
+      i += 1;
+      continue;
+    }
+    if (src[i] === "{") depth += 1;
+    else if (src[i] === "}") depth -= 1;
+    else if (src[i] === "&" && depth === 0) {
+      cells.push(current);
+      current = "";
+      continue;
+    }
+    current += src[i];
+  }
+  cells.push(current);
+  return cells;
+}
+
+function renderCell(cell: string): string {
+  let text = cell.replace(/\\hline/g, "").trim();
+  if (!text) return "";
+  text = text.replace(/\\\(([\s\S]+?)\\\)/g, (_, tex: string) => inline(renderMath(tex, false)));
+  text = text.replace(/\$([^$\n]+?)\$/g, (_, tex: string) => inline(renderMath(tex, false)));
+  return finalizeInline(text);
+}
+
+function renderTabular(raw: string): string {
+  let inner = raw.trim();
+  if (inner.startsWith("[")) {
+    const end = inner.indexOf("]");
+    if (end >= 0) inner = inner.slice(end + 1).trim();
+  }
+  if (inner.startsWith("{")) {
+    const end = matchBrace(inner, 0);
+    if (end > 0) inner = inner.slice(end + 1);
+  }
+  const rows = splitLatexRows(inner)
+    .map((row) => row.replace(/\\hline/g, "").trim())
+    .filter(Boolean)
+    .map((row) => {
+      const cells = splitCells(row).map((cell) => `<td>${renderCell(cell)}</td>`).join("");
+      return `<tr>${cells}</tr>`;
+    })
+    .join("");
+  if (!rows) return "";
+  return `\n\n${block(`<table class="note-table"><tbody>${rows}</tbody></table>`)}\n\n`;
 }
 
 function extractMath(src: string): string {
-  let text = extractDisplayEnvs(src);
-  text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, tex: string) => block(renderMath(tex, true)));
+  let text = src;
+  for (const name of ["align", "flalign", "eqnarray", "gather", "aligned", "gathered", "split", "multline", "equation"]) {
+    text = replaceEnvironment(text, name, renderDisplay);
+  }
+  text = replaceEnvironment(text, "tabular", renderTabular);
+  text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, tex: string) => {
+    const body = String(tex).trim();
+    const wrapped = /\\\\|&=/.test(body) && !/\\begin\{/.test(body) ? `\\begin{aligned}${body}\\end{aligned}` : body;
+    return block(renderMath(wrapped, true));
+  });
   text = text.replace(/\\\[([\s\S]+?)\\\]/g, (_, tex: string) => block(renderMath(tex, true)));
   text = text.replace(/\\\(([\s\S]+?)\\\)/g, (_, tex: string) => inline(renderMath(tex, false)));
   text = text.replace(/\$([^$\n]+?)\$/g, (_, tex: string) => inline(renderMath(tex, false)));
@@ -359,8 +518,10 @@ export function latexToPreviewHtml(latex: string): string {
   }
 
   let body = stripPreamble(latex);
+  body = extractFigures(body);
   body = absorbHtml(body);
   body = stripComments(body);
+  body = promoteFormulaBlocks(body);
   body = extractMath(body);
   body = unwrapSizeGroups(body);
   body = replaceEnvironment(body, "center", transformCenter);

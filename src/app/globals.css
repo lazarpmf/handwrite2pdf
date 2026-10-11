@@ -323,6 +323,30 @@ a {
   font-style: italic;
 }
 
+.doc-preview .note-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.4rem 0 1rem;
+}
+
+.doc-preview .note-table td {
+  border: 1px solid #c5d0db;
+  padding: 0.4rem 0.55rem;
+  vertical-align: top;
+}
+
+.doc-preview .note-figure {
+  display: flex;
+  justify-content: center;
+  margin: 0.35rem 0 1rem;
+}
+
+.doc-preview .note-figure svg {
+  width: min(100%, 320px);
+  height: auto;
+  background: white;
+}
+
 .doc-preview .muted {
   color: #6b7c8d;
 }
