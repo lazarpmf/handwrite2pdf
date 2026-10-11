@@ -23,7 +23,7 @@ const ibmMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "InkTeX — sveska u LaTeX i PDF",
   description:
-    "Fotografiraj stranice iz sveske, pretvori rukopis u LaTeX i eksportuj PDF. Lokalni Pix2Text, bez API ključa.",
+    "Fotografiraj stranice iz sveske, pretvori rukopis u LaTeX i eksportuj PDF.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

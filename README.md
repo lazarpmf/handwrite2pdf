@@ -1,36 +1,32 @@
 # InkTeX
 
-Fotografiraj stranice iz sveske → **Pix2Text** pretvori u **LaTeX** → eksportuj **PDF** / `.tex` / Overleaf.
+Fotografiraj stranice iz sveske → **Gemini** pretvori u **LaTeX** → eksportuj **PDF** / `.tex` / Overleaf.
 
-Prepoznavanje je lokalno. Nema Gemini ključa i slike ne idu u cloud.
+Ključ je samo na serveru. Posjetilac ga ne vidi i ne unosi.
 
 ## Pokretanje
 
 ```bash
 cd inktex
 npm install
-python3 -m venv .venv
-.venv/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-.venv/bin/pip install -r ocr/requirements.txt
 cp .env.example .env.local
 ```
 
-Jedan terminal:
+U `.env.local` stavi `GEMINI_API_KEY` iz [Google AI Studio](https://aistudio.google.com/apikey).
 
 ```bash
 npm run dev
 ```
 
-Prvi put sam instalira Pix2Text i pokrene čitanje rukopisa. Drugi terminal nije potreban.
+## Netlify
 
-Prva konverzija skida Pix2Text modele (nekoliko stotina MB) u `~/.pix2text`.
+1. Besplatan ključ: [Google AI Studio](https://aistudio.google.com/apikey).
+2. Site configuration → Environment variables → `GEMINI_API_KEY`.
+   Nemoj `NEXT_PUBLIC_` — ključ ostaje na serveru.
+3. Model je `gemini-3.5-flash-lite`. Mijenja se samo ako staviš `GEMINI_MODEL`.
+4. Ponovo objavi sajt. Poslije toga „Pretvori u LaTeX” radi u browseru.
 
-## Zašto je tebi besplatno
-
-- [Pix2Text](https://github.com/breezedeus/Pix2Text) je open-source (tekst, layout, formule → Markdown/LaTeX).
-- Radi na tvom računaru. Nema naplate po slici.
-
-Kvalitet je dobar na urednom rukopisu i štampi. Vrlo neuredan rukopis i dalje može promašiti formule — tu su cloud modeli jači, ali nisu besplatni bez limita.
+Besplatni nivo ima dnevni limit. Kad se napuni, dugme javi da se proba kasnije.
 
 ## Kako da unovčiš
 

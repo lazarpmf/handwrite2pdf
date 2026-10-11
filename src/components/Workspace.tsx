@@ -129,7 +129,7 @@ export function Workspace() {
 
     setBusy(true);
     setStatus(
-      "Pix2Text čita stranice lokalno… Prvi put skida modele i može potrajati.",
+      "Čitam rukopis…",
     );
     try {
       const images = await Promise.all(
@@ -215,8 +215,8 @@ export function Workspace() {
           <div className="panel-intro">
             <h1>Fotografiraj stranice</h1>
             <p>
-              Jedna ili više stranica iz sveske. Pix2Text radi lokalno, bez
-              API ključa. Redoslijed = redoslijed u dokumentu.
+              Jedna ili više stranica iz sveske. Redoslijed na listi je
+              redoslijed u dokumentu.
               {!isPro && ` Free limit: ${FREE_PAGE_LIMIT} stranice.`}
             </p>
           </div>

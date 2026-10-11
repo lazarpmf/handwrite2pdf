@@ -3,13 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/dev.mjs",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "gen-license": "node scripts/gen-license.mjs",
-    "gift": "node scripts/gift-code.mjs",
-    "ocr": ".venv/bin/python ocr/server.py"
+    "gift": "node scripts/gift-code.mjs"
   },
   "dependencies": {
     "html2canvas": "^1.4.1",

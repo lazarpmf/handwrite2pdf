@@ -40,8 +40,8 @@ export function SettingsPanel({
         <section className="modal-section">
           <h3>Prepoznavanje</h3>
           <p className="hint">
-            Rukopis ide kroz lokalni Pix2Text (besplatna Python biblioteka).
-            Nema API ključa i slike ne idu na Gemini.
+            Fotografija ide na server i tamo se pretvara u LaTeX. Ključ se ne
+            unosi ovdje.
           </p>
         </section>
 

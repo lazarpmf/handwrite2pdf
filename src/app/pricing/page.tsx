@@ -9,7 +9,7 @@ export default function PricingPage() {
         <p className="brand">InkTeX</p>
         <h1>Besplatno za tebe. Pro za kupce.</h1>
         <p className="lede">
-          Prepoznavanje radi lokalno preko Pix2Text-a — nema API računa.
+          Prepoznavanje radi na serveru. Kupac ne pravi nalog ni API ključ.
           Drugima prodaješ Pro licencu (više stranica, bez watermarka).
         </p>
         <Link className="primary-btn" href="/">
@@ -22,7 +22,7 @@ export default function PricingPage() {
           <h2>Free</h2>
           <p className="price">0 €</p>
           <ul>
-            <li>Lokalni Pix2Text, bez API ključa</li>
+            <li>Čitanje rukopisa na serveru</li>
             <li>Do 3 stranice po konverziji</li>
             <li>LaTeX + PDF + Overleaf eksport</li>
             <li>Mali watermark na PDF-u</li>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { FREE_PAGE_LIMIT } from "@/lib/constants";
-import { ensureOcr, ocrConvertUrl } from "@/lib/ensure-ocr";
+import { ConvertFailure, pagesToLatex } from "@/lib/gemini";
 import { resolveLicense } from "@/lib/passes";
 
 type ImagePayload = {
@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       );
     }
 
+    let total = 0;
     for (const img of images) {
       if (!img?.data || !img?.mimeType?.startsWith("image/")) {
         return NextResponse.json(
@@ -42,65 +43,28 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      if (img.data.length > 16_000_000) {
+      const payload = img.data.replace(/^data:[^;]+;base64,/, "");
+      total += payload.length;
+      if (payload.length > 6_000_000) {
         return NextResponse.json(
-          { error: "Slika je prevelika. Kompresuj ili snimi ponovo." },
+          { error: "Slika je prevelika. Približi se stranici i snimi ponovo." },
           { status: 400 },
         );
       }
     }
-
-    const ready = await ensureOcr();
-    if (!ready.ok) {
-      return NextResponse.json({ error: ready.error }, { status: 503 });
-    }
-
-    const ocrUrl = ocrConvertUrl();
-    let ocrRes: Response;
-    try {
-      ocrRes = await fetch(ocrUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          images: images.map((img) => ({
-            mimeType: img.mimeType,
-            data: img.data.replace(/^data:[^;]+;base64,/, ""),
-          })),
-        }),
-      });
-    } catch {
+    if (total > 5_500_000) {
       return NextResponse.json(
-        {
-          error:
-            "Čitanje rukopisa se nije javilo. Pokreni projekat sa: npm run dev",
-        },
-        { status: 503 },
+        { error: "Previše stranica odjednom. Pošalji ih u manjim grupama." },
+        { status: 400 },
       );
     }
 
-    const payload = (await ocrRes.json()) as {
-      latex?: string;
-      detail?: string;
-      error?: string;
-    };
-
-    if (!ocrRes.ok) {
-      return NextResponse.json(
-        { error: payload.detail || payload.error || "Pix2Text greška." },
-        { status: 502 },
-      );
-    }
-
-    const latex = payload.latex?.trim() || "";
-    if (!latex) {
-      return NextResponse.json(
-        { error: "Pix2Text nije vratio tekst. Pokušaj jasniju fotografiju." },
-        { status: 502 },
-      );
-    }
-
-    return NextResponse.json({ latex, isPro, engine: "pix2text" });
+    const latex = await pagesToLatex(images);
+    return NextResponse.json({ latex, isPro, engine: "gemini" });
   } catch (err) {
+    if (err instanceof ConvertFailure) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     console.error("convert error", err);
     return NextResponse.json(
       { error: "Interna greška pri konverziji." },
