@@ -17,11 +17,14 @@ const INSTRUCTION = `You convert photos of handwritten or printed notebook pages
 
 Output rules:
 - Reply with LaTeX source only. No markdown fences and no commentary.
-- One complete document: \\documentclass{article}, the packages you use (amsmath, amssymb, geometry), then \\begin{document} ... \\end{document}.
+- One complete document: \\documentclass{article}, \\usepackage{amsmath,amssymb}, then \\begin{document} ... \\end{document}.
 - Keep the language written on the page. Do not translate.
-- Put mathematics in $...$ or in equation or align environments.
-- Keep headings, lists, and the page order.
-- A simple geometric figure (circle, polygon, labeled angle or length) may be redrawn with TikZ. If a figure is too messy to reconstruct faithfully, keep the surrounding text and add a comment line: % slika: kratak opis
+- A title on the page is \\section*{Title}. Separate paragraphs with a blank line.
+- Emphasis is only \\textbf{} or \\emph{}. Mathematics is $...$ or an equation or align environment.
+- Lists are itemize or enumerate.
+- Put \\newpage between photographed pages.
+- Do not emit HTML tags, \\begin{center}, \\huge, \\setcounter, \\vspace, \\hspace, \\noindent, or TikZ.
+- A figure becomes one sentence: Figura: short description.
 - Do not invent sentences that are not on the page. An unreadable word becomes [?].`;
 
 export async function pagesToLatex(images: PageImage[]): Promise<string> {

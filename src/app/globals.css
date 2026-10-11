@@ -299,6 +299,28 @@ a {
 .doc-preview h3 {
   font-family: var(--font-display);
   letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.doc-preview h1 {
+  text-align: center;
+  font-size: 1.7rem;
+  margin: 0.15rem 0 1rem;
+}
+
+.doc-preview p {
+  margin: 0 0 0.85rem;
+}
+
+.doc-preview .sheet-break {
+  border: 0;
+  border-top: 1px solid #d5dee8;
+  margin: 1.4rem 0 1.1rem;
+}
+
+.doc-preview .figure-note {
+  color: #4b5d70;
+  font-style: italic;
 }
 
 .doc-preview .muted {
