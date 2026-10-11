@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { FREE_PAGE_LIMIT } from "@/lib/constants";
+import { ensureOcr, ocrConvertUrl } from "@/lib/ensure-ocr";
 import { resolveLicense } from "@/lib/passes";
 
 type ImagePayload = {
@@ -49,10 +50,15 @@ export async function POST(request: Request) {
       }
     }
 
-    const ocrUrl = process.env.OCR_SERVICE_URL || "http://127.0.0.1:8765";
+    const ready = await ensureOcr();
+    if (!ready.ok) {
+      return NextResponse.json({ error: ready.error }, { status: 503 });
+    }
+
+    const ocrUrl = ocrConvertUrl();
     let ocrRes: Response;
     try {
-      ocrRes = await fetch(`${ocrUrl}/convert`, {
+      ocrRes = await fetch(ocrUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -66,7 +72,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "OCR servis nije pokrenut. U drugom terminalu: npm run ocr",
+            "Čitanje rukopisa se nije javilo. Pokreni projekat sa: npm run dev",
         },
         { status: 503 },
       );

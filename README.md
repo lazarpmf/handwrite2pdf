@@ -15,12 +15,13 @@ python3 -m venv .venv
 cp .env.example .env.local
 ```
 
-Dva terminala:
+Jedan terminal:
 
 ```bash
-npm run ocr
 npm run dev
 ```
+
+Prvi put sam instalira Pix2Text i pokrene čitanje rukopisa. Drugi terminal nije potreban.
 
 Prva konverzija skida Pix2Text modele (nekoliko stotina MB) u `~/.pix2text`.
 
