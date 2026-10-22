@@ -40,8 +40,7 @@ export function SettingsPanel({
         <section className="modal-section">
           <h3>Prepoznavanje</h3>
           <p className="hint">
-            Fotografija ide na server i tamo se pretvara u LaTeX. Ključ se ne
-            unosi ovdje.
+            Na ovom računaru rukopis čita Pix2Text. Pokreni projekat sa npm run dev.
           </p>
         </section>
 

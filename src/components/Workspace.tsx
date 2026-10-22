@@ -129,7 +129,7 @@ export function Workspace() {
 
     setBusy(true);
     setStatus(
-      "Čitam rukopis…",
+      "Pix2Text čita stranicu na ovom računaru. Prvi put skida modele i može potrajati nekoliko minuta.",
     );
     try {
       const images = await Promise.all(

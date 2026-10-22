@@ -1,22 +1,27 @@
 # InkTeX
 
-Fotografiraj stranice iz sveske → **Gemini** pretvori u **LaTeX** → eksportuj **PDF** / `.tex` / Overleaf.
+Fotografisi stranicu sveske → **Pix2Text** na tvom računaru pretvori u **LaTeX** → eksportuj **PDF**.
 
-Ključ je samo na serveru. Posjetilac ga ne vidi i ne unosi.
+## Na svom računaru
 
-## Pokretanje
+Treba Node.js i Python 3.10 ili noviji. Na Windowsu, pri instalaciji Pythona uključi "Add python.exe to PATH".
 
 ```bash
-cd inktex
+git clone https://github.com/lazarpmf/handwrite2pdf
+cd handwrite2pdf
 npm install
-cp .env.example .env.local
-```
-
-U `.env.local` stavi `GEMINI_API_KEY` iz [Google AI Studio](https://aistudio.google.com/apikey).
-
-```bash
 npm run dev
 ```
+
+Otvori adresu koju terminal ispiše, obično http://localhost:3000.
+
+1. **Fotografisi stranicu sveske** ili **Iz galerije**.
+2. **Pretvori u LaTeX**. Prvi put skida modele (nekoliko stotina MB) i može trajati nekoliko minuta. Sljedeći put je brže.
+3. Tab **PDF** → **Preuzmi PDF**.
+
+Zaustavi program u terminalu sa Ctrl+C.
+
+Sajt na Netlifyju i dalje koristi Gemini. Lokalno dugme ide kroz Pix2Text.
 
 ## Netlify
 

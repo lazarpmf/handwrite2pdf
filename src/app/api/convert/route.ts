@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { FREE_PAGE_LIMIT } from "@/lib/constants";
+import { ensureOcr, ocrConvertUrl } from "@/lib/ensure-ocr";
 import { ConvertFailure, pagesToLatex } from "@/lib/gemini";
 import { resolveLicense } from "@/lib/passes";
 
@@ -7,6 +8,12 @@ type ImagePayload = {
   mimeType: string;
   data: string;
 };
+
+function useLocalOcr(): boolean {
+  if (process.env.OCR_ENGINE === "gemini") return false;
+  if (process.env.OCR_ENGINE === "pix2text") return true;
+  return !process.env.NETLIFY && !process.env.VERCEL;
+}
 
 export async function POST(request: Request) {
   try {
@@ -57,6 +64,56 @@ export async function POST(request: Request) {
         { error: "Previše stranica odjednom. Pošalji ih u manjim grupama." },
         { status: 400 },
       );
+    }
+
+    if (useLocalOcr()) {
+      const ready = await ensureOcr();
+      if (!ready.ok) {
+        return NextResponse.json({ error: ready.error }, { status: 503 });
+      }
+
+      let ocrRes: Response;
+      try {
+        ocrRes = await fetch(ocrConvertUrl(), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            images: images.map((img) => ({
+              mimeType: img.mimeType,
+              data: img.data.replace(/^data:[^;]+;base64,/, ""),
+            })),
+          }),
+          signal: AbortSignal.timeout(600_000),
+        });
+      } catch {
+        return NextResponse.json(
+          {
+            error:
+              "Pix2Text se nije javio. U folderu projekta pokreni npm run dev i sačekaj da se podigne.",
+          },
+          { status: 503 },
+        );
+      }
+
+      const payload = (await ocrRes.json().catch(() => null)) as {
+        latex?: string;
+        detail?: string;
+        error?: string;
+      } | null;
+      if (!ocrRes.ok) {
+        return NextResponse.json(
+          { error: payload?.detail || payload?.error || "Pix2Text greška." },
+          { status: 502 },
+        );
+      }
+      const latex = payload?.latex?.trim() || "";
+      if (!latex) {
+        return NextResponse.json(
+          { error: "Pix2Text nije vratio tekst. Pokušaj jasniju fotografiju." },
+          { status: 502 },
+        );
+      }
+      return NextResponse.json({ latex, isPro, engine: "pix2text" });
     }
 
     const latex = await pagesToLatex(images);
